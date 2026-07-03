@@ -5,12 +5,14 @@ import AppKit
 struct SwiftKeyShimApp: App {
     @StateObject private var settings: RemapSettings
     @StateObject private var remapper: KeyboardRemapper
+    @StateObject private var launchAtLogin: LaunchAtLoginController
 
     init() {
         let settings = RemapSettings()
         let remapper = KeyboardRemapper(settings: settings)
         _settings = StateObject(wrappedValue: settings)
         _remapper = StateObject(wrappedValue: remapper)
+        _launchAtLogin = StateObject(wrappedValue: LaunchAtLoginController())
 
         Task { @MainActor in
             remapper.start()
@@ -22,12 +24,14 @@ struct SwiftKeyShimApp: App {
             StatusMenuView()
                 .environmentObject(settings)
                 .environmentObject(remapper)
+                .environmentObject(launchAtLogin)
         }
 
         Settings {
             ContentView()
                 .environmentObject(settings)
                 .environmentObject(remapper)
+                .environmentObject(launchAtLogin)
                 .frame(width: 640, height: 560)
         }
     }
@@ -37,6 +41,7 @@ struct StatusMenuView: View {
     @Environment(\.openSettings) private var openSettings
     @EnvironmentObject private var settings: RemapSettings
     @EnvironmentObject private var remapper: KeyboardRemapper
+    @EnvironmentObject private var launchAtLogin: LaunchAtLoginController
 
     var body: some View {
         Group {
@@ -48,8 +53,15 @@ struct StatusMenuView: View {
 
             Toggle(text.enableMapping, isOn: $settings.enabled)
 
+            Toggle(text.launchAtLogin, isOn: launchAtLoginBinding)
+
             Text(statusText)
                 .foregroundStyle(.secondary)
+
+            if let launchAtLoginError = launchAtLogin.lastError {
+                Text(launchAtLoginError)
+                    .foregroundStyle(.secondary)
+            }
 
             Divider()
 
@@ -59,6 +71,7 @@ struct StatusMenuView: View {
         }
         .onAppear {
             remapper.refreshAuthorizationStatus()
+            launchAtLogin.refresh()
         }
     }
 
@@ -93,5 +106,12 @@ struct StatusMenuView: View {
 
     private var text: InterfaceText {
         InterfaceText(appLanguage: settings.language)
+    }
+
+    private var launchAtLoginBinding: Binding<Bool> {
+        Binding(
+            get: { launchAtLogin.isEnabled },
+            set: { launchAtLogin.setEnabled($0) }
+        )
     }
 }

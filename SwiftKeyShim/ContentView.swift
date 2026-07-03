@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var settings: RemapSettings
     @EnvironmentObject private var remapper: KeyboardRemapper
+    @EnvironmentObject private var launchAtLogin: LaunchAtLoginController
 
     var body: some View {
         ScrollView {
@@ -24,6 +25,16 @@ struct ContentView: View {
 
             Toggle(text.enableMapping, isOn: $settings.enabled)
                 .toggleStyle(.switch)
+
+            Toggle(text.launchAtLogin, isOn: launchAtLoginBinding)
+                .toggleStyle(.switch)
+
+            if let launchAtLoginError = launchAtLogin.lastError {
+                Text(launchAtLoginError)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             Picker(text.triggerKey, selection: $settings.shiftSide) {
                 ForEach(ShiftSide.allCases) { side in
@@ -109,6 +120,13 @@ struct ContentView: View {
     private var text: InterfaceText {
         InterfaceText(appLanguage: settings.language)
     }
+
+    private var launchAtLoginBinding: Binding<Bool> {
+        Binding(
+            get: { launchAtLogin.isEnabled },
+            set: { launchAtLogin.setEnabled($0) }
+        )
+    }
 }
 
 struct InterfaceText {
@@ -117,6 +135,7 @@ struct InterfaceText {
     var languagePicker: String { appLanguage == .chinese ? "语言" : "Language" }
     var subtitle: String { appLanguage == .chinese ? "短按 Shift 发送目标功能键；按住 Shift 保持正常修饰键行为。" : "Tap Shift to send the target function key. Hold Shift to keep normal modifier behavior." }
     var enableMapping: String { appLanguage == .chinese ? "启用键盘映射" : "Enable keyboard mapping" }
+    var launchAtLogin: String { appLanguage == .chinese ? "开机自启" : "Launch at login" }
     var triggerKey: String { appLanguage == .chinese ? "触发键" : "Trigger key" }
     var targetType: String { appLanguage == .chinese ? "目标类型" : "Target type" }
     var tapSends: String { appLanguage == .chinese ? "短按发送" : "Tap sends" }
