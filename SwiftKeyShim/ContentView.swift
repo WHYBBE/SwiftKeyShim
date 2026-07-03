@@ -83,7 +83,6 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(28)
-        .frame(width: 520)
         .onAppear { remapper.start() }
     }
 

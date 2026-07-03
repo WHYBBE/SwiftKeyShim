@@ -36,6 +36,13 @@ final class KeyboardRemapper: ObservableObject {
         isTrusted = AXIsProcessTrustedWithOptions(options)
     }
 
+    func refreshAuthorizationStatus() {
+        isTrusted = AXIsProcessTrusted()
+        if isTrusted, settings.enabled, !isRunning {
+            start()
+        }
+    }
+
     func start() {
         isTrusted = AXIsProcessTrusted()
         guard settings.enabled else {
