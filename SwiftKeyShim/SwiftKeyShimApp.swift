@@ -20,7 +20,7 @@ struct SwiftKeyShimApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("SwiftKeyShim", systemImage: "keyboard") {
+        MenuBarExtra("SwiftKeyShim", systemImage: menuBarSystemImage) {
             StatusMenuView()
                 .environmentObject(settings)
                 .environmentObject(remapper)
@@ -34,6 +34,10 @@ struct SwiftKeyShimApp: App {
                 .environmentObject(launchAtLogin)
                 .frame(width: 640, height: 560)
         }
+    }
+
+    private var menuBarSystemImage: String {
+        settings.enabled && (!remapper.isRunning || !remapper.isTrusted) ? "keyboard.badge.ellipsis" : "keyboard"
     }
 }
 
