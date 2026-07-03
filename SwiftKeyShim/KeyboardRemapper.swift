@@ -52,7 +52,9 @@ final class KeyboardRemapper: ObservableObject {
 
         guard isTrusted else {
             stop()
-            lastError = "需要在系统设置中授予辅助功能权限。"
+            lastError = settings.language == .chinese
+                ? "需要在系统设置中授予辅助功能权限。"
+                : "Accessibility permission is required in System Settings."
             return
         }
 
@@ -79,7 +81,9 @@ final class KeyboardRemapper: ObservableObject {
         )
 
         guard let eventTap else {
-            lastError = "无法创建键盘事件监听。请检查辅助功能/Input Monitoring 权限。"
+            lastError = settings.language == .chinese
+                ? "无法创建键盘事件监听。请检查辅助功能和输入监控权限。"
+                : "Could not create the keyboard event tap. Check Accessibility and Input Monitoring permissions."
             isRunning = false
             return
         }

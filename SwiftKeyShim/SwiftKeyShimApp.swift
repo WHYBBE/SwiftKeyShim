@@ -28,7 +28,7 @@ struct SwiftKeyShimApp: App {
             ContentView()
                 .environmentObject(settings)
                 .environmentObject(remapper)
-                .frame(width: 520)
+                .frame(width: 640, height: 560)
         }
     }
 }
@@ -40,20 +40,20 @@ struct StatusMenuView: View {
 
     var body: some View {
         Group {
-            Button("设置...") {
+            Button(text.settings) {
                 openFocusedSettings()
             }
 
             Divider()
 
-            Toggle("启用键盘映射", isOn: $settings.enabled)
+            Toggle(text.enableMapping, isOn: $settings.enabled)
 
             Text(statusText)
                 .foregroundStyle(.secondary)
 
             Divider()
 
-            Button("退出 SwiftKeyShim") {
+            Button(text.quit) {
                 NSApp.terminate(nil)
             }
         }
@@ -85,9 +85,13 @@ struct StatusMenuView: View {
     }
 
     private var statusText: String {
-        if remapper.isRunning { return "正在监听" }
-        if !remapper.isTrusted { return "等待辅助功能权限" }
-        if !settings.enabled { return "已停用" }
-        return "未运行"
+        if remapper.isRunning { return settings.language == .chinese ? "正在监听" : "Listening" }
+        if !remapper.isTrusted { return text.waitingForPermission }
+        if !settings.enabled { return text.disabled }
+        return text.notRunning
+    }
+
+    private var text: InterfaceText {
+        InterfaceText(appLanguage: settings.language)
     }
 }

@@ -1,5 +1,19 @@
 import Foundation
 
+enum AppLanguage: String, CaseIterable, Identifiable {
+    case chinese
+    case english
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .chinese: "中文"
+        case .english: "English"
+        }
+    }
+}
+
 enum ShiftSide: String, CaseIterable, Identifiable {
     case left
     case right
@@ -7,11 +21,11 @@ enum ShiftSide: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    func title(language: AppLanguage) -> String {
         switch self {
-        case .left: "Left Shift"
-        case .right: "Right Shift"
-        case .both: "Both Shifts"
+        case .left: language == .chinese ? "左 Shift" : "Left Shift"
+        case .right: language == .chinese ? "右 Shift" : "Right Shift"
+        case .both: language == .chinese ? "左右 Shift" : "Both Shift Keys"
         }
     }
 }
@@ -22,10 +36,10 @@ enum TargetKeyMode: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    func title(language: AppLanguage) -> String {
         switch self {
-        case .preset: "Preset"
-        case .custom: "Custom"
+        case .preset: language == .chinese ? "预设" : "Preset"
+        case .custom: language == .chinese ? "自定义" : "Custom"
         }
     }
 }
@@ -45,6 +59,10 @@ extension FunctionKey {
 
 @MainActor
 final class RemapSettings: ObservableObject {
+    @Published var language: AppLanguage {
+        didSet { UserDefaults.standard.set(language.rawValue, forKey: Keys.language) }
+    }
+
     @Published var enabled: Bool {
         didSet { UserDefaults.standard.set(enabled, forKey: Keys.enabled) }
     }
@@ -75,6 +93,8 @@ final class RemapSettings: ObservableObject {
     }
 
     init() {
+        let savedLanguage = UserDefaults.standard.string(forKey: Keys.language) ?? AppLanguage.chinese.rawValue
+        language = AppLanguage(rawValue: savedLanguage) ?? .chinese
         enabled = UserDefaults.standard.object(forKey: Keys.enabled) as? Bool ?? true
         let savedSide = UserDefaults.standard.string(forKey: Keys.shiftSide) ?? ShiftSide.left.rawValue
         shiftSide = ShiftSide(rawValue: savedSide) ?? .left
@@ -96,6 +116,7 @@ final class RemapSettings: ObservableObject {
     }
 
     private enum Keys {
+        static let language = "language"
         static let enabled = "enabled"
         static let shiftSide = "shiftSide"
         static let targetKeyCode = "targetKeyCode"
