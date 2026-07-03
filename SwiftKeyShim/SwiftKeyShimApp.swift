@@ -41,8 +41,7 @@ struct StatusMenuView: View {
     var body: some View {
         Group {
             Button("设置...") {
-                openSettings()
-                NSApp.activate(ignoringOtherApps: true)
+                openFocusedSettings()
             }
 
             Divider()
@@ -61,6 +60,28 @@ struct StatusMenuView: View {
         .onAppear {
             remapper.refreshAuthorizationStatus()
         }
+    }
+
+    private func openFocusedSettings() {
+        openSettings()
+
+        for delay in [0.1, 0.3, 0.6] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                focusSettingsWindow()
+            }
+        }
+    }
+
+    private func focusSettingsWindow() {
+        NSRunningApplication.current.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+        NSApp.activate(ignoringOtherApps: true)
+
+        guard let window = NSApp.windows.first(where: { $0.isVisible && !$0.title.isEmpty }) else {
+            return
+        }
+
+        window.orderFrontRegardless()
+        window.makeKeyAndOrderFront(nil)
     }
 
     private var statusText: String {
