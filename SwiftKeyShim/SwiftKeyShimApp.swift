@@ -73,7 +73,7 @@ struct StatusMenuView: View {
     }
 
     private func focusSettingsWindow() {
-        NSRunningApplication.current.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+        NSRunningApplication.current.activate(options: [.activateAllWindows])
         NSApp.activate(ignoringOtherApps: true)
 
         guard let window = NSApp.windows.first(where: { $0.isVisible && !$0.title.isEmpty }) else {
