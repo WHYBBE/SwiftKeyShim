@@ -34,6 +34,12 @@ struct SwiftKeyShimApp: App {
                 .environmentObject(launchAtLogin)
                 .frame(width: 640, height: 560)
         }
+
+        Window("About SwiftKeyShim", id: "about") {
+            AboutView()
+                .environmentObject(settings)
+                .frame(width: 260, height: 230)
+        }
     }
 
     private var menuBarSystemImage: String {
@@ -43,6 +49,7 @@ struct SwiftKeyShimApp: App {
 
 struct StatusMenuView: View {
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.openWindow) private var openWindow
     @EnvironmentObject private var settings: RemapSettings
     @EnvironmentObject private var remapper: KeyboardRemapper
     @EnvironmentObject private var launchAtLogin: LaunchAtLoginController
@@ -69,6 +76,12 @@ struct StatusMenuView: View {
 
             Divider()
 
+            Button(text.about) {
+                openFocusedAbout()
+            }
+
+            Divider()
+
             Button(text.quit) {
                 NSApp.terminate(nil)
             }
@@ -89,11 +102,33 @@ struct StatusMenuView: View {
         }
     }
 
+    private func openFocusedAbout() {
+        openWindow(id: "about")
+
+        for delay in [0.1, 0.3, 0.6] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                focusAboutWindow()
+            }
+        }
+    }
+
     private func focusSettingsWindow() {
         NSRunningApplication.current.activate(options: [.activateAllWindows])
         NSApp.activate(ignoringOtherApps: true)
 
         guard let window = NSApp.windows.first(where: { $0.isVisible && !$0.title.isEmpty }) else {
+            return
+        }
+
+        window.orderFrontRegardless()
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    private func focusAboutWindow() {
+        NSRunningApplication.current.activate(options: [.activateAllWindows])
+        NSApp.activate(ignoringOtherApps: true)
+
+        guard let window = NSApp.windows.first(where: { $0.title == "About SwiftKeyShim" }) else {
             return
         }
 
@@ -117,5 +152,52 @@ struct StatusMenuView: View {
             get: { launchAtLogin.isEnabled },
             set: { launchAtLogin.setEnabled($0) }
         )
+    }
+}
+
+struct AboutView: View {
+    @EnvironmentObject private var settings: RemapSettings
+
+    private let repositoryURL = URL(string: "https://github.com/WHYBBE/SwiftKeyShim")!
+    private let licenseURL = URL(string: "https://github.com/WHYBBE/SwiftKeyShim/blob/main/LICENSE")!
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 72, height: 72)
+
+            VStack(spacing: 4) {
+                Text(appName)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text(versionText)
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(spacing: 6) {
+                Text(text.repository)
+                Link("WHYBBE/SwiftKeyShim", destination: repositoryURL)
+
+                Link("MIT", destination: licenseURL)
+            }
+            .padding(.top, 4)
+        }
+        .padding(18)
+    }
+
+    private var appName: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "SwiftKeyShim"
+    }
+
+    private var versionText: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+        return "\(text.version) \(version) (\(build))"
+    }
+
+    private var text: InterfaceText {
+        InterfaceText(appLanguage: settings.language)
     }
 }

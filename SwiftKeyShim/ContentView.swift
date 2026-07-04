@@ -149,6 +149,10 @@ struct InterfaceText {
     var disabled: String { appLanguage == .chinese ? "已停用" : "Disabled" }
     var notRunning: String { appLanguage == .chinese ? "未运行" : "Not running" }
     var settings: String { appLanguage == .chinese ? "设置..." : "Settings..." }
+    var about: String { appLanguage == .chinese ? "关于 SwiftKeyShim..." : "About SwiftKeyShim..." }
+    var version: String { appLanguage == .chinese ? "版本" : "Version" }
+    var repository: String { appLanguage == .chinese ? "开源仓库" : "Open Source Repository" }
+    var license: String { appLanguage == .chinese ? "开源协议" : "Open Source License" }
     var quit: String { appLanguage == .chinese ? "退出 SwiftKeyShim" : "Quit SwiftKeyShim" }
 }
 
