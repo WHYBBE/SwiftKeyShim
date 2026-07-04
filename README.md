@@ -1,22 +1,59 @@
 # SwiftKeyShim
 
-一个独立的 macOS SwiftUI 键盘映射小程序，不依赖 Karabiner。
+[中文说明](README.zh-CN.md)
 
-默认行为：短按 Left Shift 发送 F18；按住 Shift 时仍作为正常 Shift 使用。界面里可以改为 Right Shift、Both Shifts，也可以把目标键改成 F17、F18、F19 或自定义 macOS virtual key code。
+> Built through vibe coding with GPT-5.5 and OpenCode.
 
-## 使用
+SwiftKeyShim is a small standalone macOS menu bar app that remaps a quick tap of Shift to a function key. It is built with Swift and SwiftUI, and does not depend on Karabiner, Karabiner configuration files, or any Karabiner runtime component.
 
-1. 用 Xcode 打开 `SwiftKeyShim.xcodeproj`。
-2. 运行 `SwiftKeyShim`。
-3. 首次运行时，在系统设置中允许辅助功能权限。
-4. 如果要让 F18 切换输入法，在 `系统设置 -> 键盘 -> 键盘快捷键 -> 输入源` 中把对应快捷键设置为 F18。
+By default, tapping Left Shift sends F18. Holding Shift still works as a normal Shift modifier.
 
-## 构建
+![SwiftKeyShim English settings preview](docs/preview-en.png)
+
+## Features
+
+- Tap Left Shift to send F18 by default.
+- Keep normal Shift behavior when the key is held.
+- Choose Left Shift, Right Shift, or both Shift keys as the trigger.
+- Send F17, F18, F19, or a custom macOS virtual key code.
+- Adjust the tap/hold threshold.
+- Enable or disable the remapping from the menu bar.
+- Show abnormal status in the menu bar icon when remapping is enabled but the app is not listening correctly.
+- Switch the app interface between English and Chinese.
+- Start automatically at login.
+
+## Requirements
+
+- macOS 15.0 or later.
+- Xcode for building from source.
+- Accessibility permission for keyboard event monitoring and remapping.
+
+## Usage
+
+1. Open `SwiftKeyShim.xcodeproj` in Xcode.
+2. Build and run the `SwiftKeyShim` scheme.
+3. Grant Accessibility permission when macOS asks for it, or enable it manually in System Settings.
+4. If you want F18 to switch input sources, set the input source shortcut to F18 in `System Settings -> Keyboard -> Keyboard Shortcuts -> Input Sources`.
+5. Use the menu bar icon to open settings, enable or disable remapping, configure launch at login, or quit the app.
+
+## Build
 
 ```sh
-xcodebuild -project SwiftKeyShim.xcodeproj -scheme SwiftKeyShim -configuration Debug build
+xcodebuild -project SwiftKeyShim.xcodeproj -scheme SwiftKeyShim -configuration Debug -destination 'platform=macOS,arch=arm64' build
 ```
 
-## 说明
+## How It Works
 
-实现使用 macOS `CGEventTap` 拦截键盘事件，并通过 `CGEvent` 发送目标按键事件。代码没有引用 Karabiner 的配置、代码或运行环境。
+SwiftKeyShim uses a macOS `CGEventTap` to listen for keyboard events. When the configured Shift key is pressed and released within the tap threshold, the app suppresses the original Shift tap and posts the configured target key with `CGEvent`. When Shift is held past the threshold or combined with another key, it is passed through as a normal modifier.
+
+Synthetic events posted by SwiftKeyShim are marked so the app does not remap its own generated key events.
+
+## Notes
+
+- The app runs as a menu bar utility and does not show a Dock icon.
+- If remapping is enabled but Accessibility permission is missing or the event tap cannot run, the menu bar icon changes to `keyboard.badge.ellipsis`.
+- Launch at login uses `SMAppService.mainApp`, so behavior may differ between a build launched from Xcode and an app installed in `/Applications`.
+
+## License
+
+SwiftKeyShim is released under the [MIT License](LICENSE).
