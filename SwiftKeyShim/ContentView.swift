@@ -104,6 +104,10 @@ struct ContentView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            Button(text.openInputSourceShortcuts) {
+                SystemSettingsNavigator.openInputSourceShortcuts()
+            }
             }
             .padding(28)
         }
@@ -143,6 +147,7 @@ struct InterfaceText {
     var commonKeyCodes: String { appLanguage == .chinese ? "常用：F17 = 64，F18 = 79，F19 = 80，左 Shift = 56，右 Shift = 60。" : "Common values: F17 = 64, F18 = 79, F19 = 80, Left Shift = 56, Right Shift = 60." }
     var holdThreshold: String { appLanguage == .chinese ? "按住判定" : "Hold threshold" }
     var requestPermission: String { appLanguage == .chinese ? "打开辅助功能授权提示" : "Open Accessibility permission prompt" }
+    var openInputSourceShortcuts: String { appLanguage == .chinese ? "打开输入法快捷键设置" : "Open Input Source Shortcuts" }
     var inputSourceTip: String { appLanguage == .chinese ? "提示：若要用 F18 切换输入法，请在 macOS 系统设置的键盘快捷键里把“选择上一个输入法”或对应项目设置为 F18。" : "Tip: To use F18 for input source switching, set the corresponding Input Sources keyboard shortcut in macOS System Settings to F18." }
     var running: String { appLanguage == .chinese ? "正在监听键盘事件" : "Listening for keyboard events" }
     var waitingForPermission: String { appLanguage == .chinese ? "等待辅助功能权限" : "Waiting for Accessibility permission" }

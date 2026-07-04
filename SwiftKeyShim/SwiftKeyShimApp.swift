@@ -1,6 +1,22 @@
 import SwiftUI
 import AppKit
 
+enum SystemSettingsNavigator {
+    static func openInputSourceShortcuts() {
+        let urls = [
+            "x-apple.systempreferences:com.apple.Keyboard-Settings.extension",
+            "x-apple.systempreferences:com.apple.preference.keyboard"
+        ]
+
+        for urlString in urls {
+            guard let url = URL(string: urlString), NSWorkspace.shared.open(url) else { continue }
+            return
+        }
+
+        NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
+    }
+}
+
 @main
 struct SwiftKeyShimApp: App {
     @StateObject private var settings: RemapSettings
@@ -58,6 +74,10 @@ struct StatusMenuView: View {
         Group {
             Button(text.settings) {
                 openFocusedSettings()
+            }
+
+            Button(text.openInputSourceShortcuts) {
+                SystemSettingsNavigator.openInputSourceShortcuts()
             }
 
             Divider()
