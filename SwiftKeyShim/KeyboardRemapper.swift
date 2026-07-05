@@ -31,6 +31,17 @@ final class KeyboardRemapper: ObservableObject {
             .store(in: &cancellables)
     }
 
+    deinit {
+        holdTimer?.invalidate()
+
+        if let eventTap {
+            CGEvent.tapEnable(tap: eventTap, enable: false)
+        }
+        if let runLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+        }
+    }
+
     func requestAccessibilityPermission() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
         isTrusted = AXIsProcessTrustedWithOptions(options)
