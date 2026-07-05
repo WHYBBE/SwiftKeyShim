@@ -72,7 +72,15 @@ final class RemapSettings: ObservableObject {
     }
 
     @Published var targetKeyCode: Int64 {
-        didSet { UserDefaults.standard.set(targetKeyCode, forKey: Keys.targetKeyCode) }
+        didSet {
+            let keyCode = Self.validKeyCode(targetKeyCode)
+            if targetKeyCode != keyCode {
+                targetKeyCode = keyCode
+                return
+            }
+
+            UserDefaults.standard.set(keyCode, forKey: Keys.targetKeyCode)
+        }
     }
 
     @Published var targetKeyMode: TargetKeyMode {
@@ -82,7 +90,9 @@ final class RemapSettings: ObservableObject {
     @Published var customTargetKeyCodeText: String {
         didSet {
             UserDefaults.standard.set(customTargetKeyCodeText, forKey: Keys.customTargetKeyCodeText)
-            if targetKeyMode == .custom, let keyCode = Int64(customTargetKeyCodeText) {
+            if targetKeyMode == .custom,
+               let keyCode = Int64(customTargetKeyCodeText),
+               Self.validKeyCodeRange.contains(keyCode) {
                 targetKeyCode = keyCode
             }
         }
@@ -99,7 +109,11 @@ final class RemapSettings: ObservableObject {
         let savedSide = UserDefaults.standard.string(forKey: Keys.shiftSide) ?? ShiftSide.left.rawValue
         shiftSide = ShiftSide(rawValue: savedSide) ?? .left
         let savedTarget = UserDefaults.standard.object(forKey: Keys.targetKeyCode) as? Int64
-        targetKeyCode = savedTarget ?? 79
+        let validatedTarget = Self.validKeyCode(savedTarget)
+        targetKeyCode = validatedTarget
+        if savedTarget != nil, savedTarget != validatedTarget {
+            UserDefaults.standard.set(validatedTarget, forKey: Keys.targetKeyCode)
+        }
         let savedMode = UserDefaults.standard.string(forKey: Keys.targetKeyMode) ?? TargetKeyMode.preset.rawValue
         targetKeyMode = TargetKeyMode(rawValue: savedMode) ?? .preset
         customTargetKeyCodeText = UserDefaults.standard.string(forKey: Keys.customTargetKeyCodeText) ?? "79"
@@ -123,6 +137,17 @@ final class RemapSettings: ObservableObject {
         static let targetKeyMode = "targetKeyMode"
         static let customTargetKeyCodeText = "customTargetKeyCodeText"
         static let tapThresholdMilliseconds = "tapThresholdMilliseconds"
+    }
+
+    private static let defaultTargetKeyCode: Int64 = 79
+    private static let validKeyCodeRange: ClosedRange<Int64> = 0...127
+
+    private static func validKeyCode(_ keyCode: Int64?) -> Int64 {
+        guard let keyCode, validKeyCodeRange.contains(keyCode) else {
+            return defaultTargetKeyCode
+        }
+
+        return keyCode
     }
 }
 
