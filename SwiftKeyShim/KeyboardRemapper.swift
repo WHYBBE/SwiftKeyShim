@@ -78,7 +78,14 @@ final class KeyboardRemapper: ObservableObject {
         let callback: CGEventTapCallBack = { _, type, event, refcon in
             guard let refcon else { return Unmanaged.passUnretained(event) }
             let remapper = Unmanaged<KeyboardRemapper>.fromOpaque(refcon).takeUnretainedValue()
-            return remapper.handle(type: type, event: event)
+
+            guard Thread.isMainThread else {
+                return Unmanaged.passUnretained(event)
+            }
+
+            return MainActor.assumeIsolated {
+                remapper.handle(type: type, event: event)
+            }
         }
 
         let refcon = Unmanaged.passUnretained(self).toOpaque()
