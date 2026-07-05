@@ -4,7 +4,7 @@
 
 > 由 GPT-5.5 / OpenCode Vibe Coding 而成。
 
-SwiftKeyShim 是一个独立的 macOS 菜单栏键盘映射小程序，使用 Swift 和 SwiftUI 构建，不依赖 Karabiner、Karabiner 配置文件或任何 Karabiner 运行环境。
+SwiftKeyShim 是一个个人使用的 macOS 菜单栏键盘映射小程序，使用 Swift 和 SwiftUI 构建。它主要服务于我自己的键盘使用习惯，因此只专注于少量明确需求，而不是试图成为通用键盘映射工具。
 
 默认行为：短按左 Shift 发送 F18；按住 Shift 时仍作为正常 Shift 修饰键使用。
 
@@ -51,6 +51,8 @@ SwiftKeyShim 发送的合成事件会被标记，避免 app 再次映射自己�
 ## 说明
 
 - app 作为菜单栏工具运行，不显示 Dock 图标。
+- 这是围绕我个人输入法切换习惯制作的个人应用。它可能也适合其他人，但并不打算覆盖所有键盘映射场景。
+- 之所以没有继续使用 Karabiner，是因为 Karabiner 功能很强，但对这个小需求来说配置过于复杂；同时我在自己的使用环境中遇到了一些始终没有解决的 bug，也担心潜在的内存泄漏问题。
 - 如果映射已启用但缺少辅助功能权限，或键盘事件监听无法运行，菜单栏图标会变为 `keyboard.badge.ellipsis`。
 - 开机自启使用 `SMAppService.mainApp`，从 Xcode/DerivedData 运行和安装到 `/Applications` 后运行的行为可能不同。
 
