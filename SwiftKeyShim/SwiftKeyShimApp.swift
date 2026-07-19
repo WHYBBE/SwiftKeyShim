@@ -59,7 +59,7 @@ struct SwiftKeyShimApp: App {
                 .environmentObject(settings)
                 .environmentObject(remapper)
                 .environmentObject(launchAtLogin)
-                .frame(width: 640, height: 680)
+                .frame(width: 640, height: 620)
         }
 
         Window("About SwiftKeyShim", id: "about") {

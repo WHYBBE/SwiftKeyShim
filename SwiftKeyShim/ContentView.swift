@@ -1,147 +1,171 @@
 import SwiftUI
 
+private enum SettingsTab: Hashable {
+    case keyboard
+    case general
+}
+
 struct ContentView: View {
     @EnvironmentObject private var settings: RemapSettings
     @EnvironmentObject private var remapper: KeyboardRemapper
     @EnvironmentObject private var launchAtLogin: LaunchAtLoginController
+    @State private var selectedTab: SettingsTab = .keyboard
+
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            KeyboardSettingsView()
+                .tabItem {
+                    Label(text.keyboardTab, systemImage: "keyboard")
+                }
+                .tag(SettingsTab.keyboard)
+
+            GeneralSettingsView()
+                .tabItem {
+                    Label(text.generalTab, systemImage: "gearshape")
+                }
+                .tag(SettingsTab.general)
+        }
+        .onAppear { remapper.start() }
+    }
+
+    private var text: InterfaceText {
+        InterfaceText(appLanguage: settings.language)
+    }
+}
+
+private struct KeyboardSettingsView: View {
+    @EnvironmentObject private var settings: RemapSettings
+    @EnvironmentObject private var remapper: KeyboardRemapper
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("SwiftKeyShim")
-                    .font(.largeTitle.bold())
-                Text(text.subtitle)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Picker(text.languagePicker, selection: $settings.language) {
-                ForEach(AppLanguage.allCases) { language in
-                    Text(language.title).tag(language)
-                }
-            }
-            .pickerStyle(.segmented)
-
-            Toggle(text.enableMapping, isOn: $settings.enabled)
-                .toggleStyle(.switch)
-
-            Toggle(text.launchAtLogin, isOn: launchAtLoginBinding)
-                .toggleStyle(.switch)
-
-            if let launchAtLoginError = launchAtLogin.lastError {
-                Text(launchAtLoginError)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Divider()
-
-            Text(text.capsEscapeSection)
-                .font(.headline)
-
-            Toggle(text.mapEscapeToCapsLock, isOn: $settings.mapEscapeToCapsLock)
-                .toggleStyle(.switch)
-                .disabled(!settings.enabled)
-
-            Toggle(text.mapCapsLockToEscape, isOn: $settings.mapCapsLockToEscape)
-                .toggleStyle(.switch)
-                .disabled(!settings.enabled)
-
-            Text(text.capsEscapeTip)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Divider()
-
-            Text(text.shiftSection)
-                .font(.headline)
-
-            Toggle(text.mapShiftTap, isOn: $settings.mapShiftTap)
-                .toggleStyle(.switch)
-                .disabled(!settings.enabled)
-
-            Group {
-                Picker(text.triggerKey, selection: $settings.shiftSide) {
-                    ForEach(ShiftSide.allCases) { side in
-                        Text(side.title(language: settings.language)).tag(side)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                Picker(text.targetType, selection: $settings.targetKeyMode) {
-                    ForEach(TargetKeyMode.allCases) { mode in
-                        Text(mode.title(language: settings.language)).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                if settings.targetKeyMode == .preset {
-                    Picker(text.tapSends, selection: $settings.targetKeyCode) {
-                        ForEach(FunctionKey.supported) { key in
-                            Text(key.title).tag(key.id)
-                        }
-                    }
-                } else {
-                    TextField(text.targetKeyCode, text: $settings.customTargetKeyCodeText)
-                        .textFieldStyle(.roundedBorder)
-                    Text(text.commonKeyCodes)
-                        .font(.footnote)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(text.keyboardTab)
+                        .font(.title2.bold())
+                    Text(text.subtitle)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text(text.holdThreshold)
-                        Spacer()
-                        Text("\(Int(settings.tapThresholdMilliseconds)) ms")
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
+                Toggle(text.enableMapping, isOn: $settings.enabled)
+                    .toggleStyle(.switch)
+
+                Divider()
+
+                Text(text.capsEscapeSection)
+                    .font(.headline)
+
+                Toggle(text.mapEscapeToCapsLock, isOn: $settings.mapEscapeToCapsLock)
+                    .toggleStyle(.switch)
+                    .disabled(!settings.enabled)
+
+                Toggle(text.mapCapsLockToEscape, isOn: $settings.mapCapsLockToEscape)
+                    .toggleStyle(.switch)
+                    .disabled(!settings.enabled)
+
+                Text(text.capsEscapeTip)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Divider()
+
+                Text(text.shiftSection)
+                    .font(.headline)
+
+                Toggle(text.mapShiftTap, isOn: $settings.mapShiftTap)
+                    .toggleStyle(.switch)
+                    .disabled(!settings.enabled)
+
+                Group {
+                    Picker(text.triggerKey, selection: $settings.shiftSide) {
+                        ForEach(ShiftSide.allCases) { side in
+                            Text(side.title(language: settings.language)).tag(side)
+                        }
                     }
-                    Slider(value: $settings.tapThresholdMilliseconds, in: 80...300, step: 10)
-                }
-            }
-            .disabled(!settings.enabled || !settings.mapShiftTap)
+                    .pickerStyle(.segmented)
 
-            Divider()
+                    Picker(text.targetType, selection: $settings.targetKeyMode) {
+                        ForEach(TargetKeyMode.allCases) { mode in
+                            Text(mode.title(language: settings.language)).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
 
-            HStack(alignment: .top, spacing: 12) {
-                Circle()
-                    .fill(remapper.isRunning ? .green : .orange)
-                    .frame(width: 10, height: 10)
-                    .padding(.top, 5)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(statusText)
-                        .font(.headline)
-                    if let lastError = remapper.lastError {
-                        Text(lastError)
+                    if settings.targetKeyMode == .preset {
+                        Picker(text.tapSends, selection: $settings.targetKeyCode) {
+                            ForEach(FunctionKey.supported) { key in
+                                Text(key.title).tag(key.id)
+                            }
+                        }
+                    } else {
+                        TextField(text.targetKeyCode, text: $settings.customTargetKeyCodeText)
+                            .textFieldStyle(.roundedBorder)
+                        Text(text.commonKeyCodes)
+                            .font(.footnote)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    if !remapper.isTrusted {
-                        Button(text.requestPermission) {
-                            remapper.requestAccessibilityPermission()
+
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Text(text.holdThreshold)
+                            Spacer()
+                            Text("\(Int(settings.tapThresholdMilliseconds)) ms")
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
+                        Slider(value: $settings.tapThresholdMilliseconds, in: 80...300, step: 10)
+                    }
+                }
+                .disabled(!settings.enabled || !settings.mapShiftTap)
+
+                Divider()
+
+                HStack(alignment: .top, spacing: 12) {
+                    Circle()
+                        .fill(statusColor)
+                        .frame(width: 10, height: 10)
+                        .padding(.top, 5)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(statusText)
+                            .font(.headline)
+                        if let lastError = remapper.lastError {
+                            Text(lastError)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        if settings.enabled, settings.mapShiftTap, !remapper.isTrusted {
+                            Button(text.requestPermission) {
+                                remapper.requestAccessibilityPermission()
+                            }
                         }
                     }
                 }
-            }
 
-            Text(text.inputSourceTip)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(text.inputSourceTip)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            Button(text.openInputSourceShortcuts) {
-                SystemSettingsNavigator.openInputSourceShortcuts()
-            }
+                Button(text.openInputSourceShortcuts) {
+                    SystemSettingsNavigator.openInputSourceShortcuts()
+                }
             }
             .padding(28)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .onAppear { remapper.start() }
+    }
+
+    private var statusColor: Color {
+        if !settings.enabled { return .orange }
+        if remapper.isRunning { return .green }
+        if settings.mapEscapeToCapsLock || settings.mapCapsLockToEscape {
+            return .green
+        }
+        return .orange
     }
 
     private var statusText: String {
@@ -153,6 +177,45 @@ struct ContentView: View {
             return settings.language == .chinese ? "仅 HID 映射运行中" : "HID mappings active"
         }
         return text.notRunning
+    }
+
+    private var text: InterfaceText {
+        InterfaceText(appLanguage: settings.language)
+    }
+}
+
+private struct GeneralSettingsView: View {
+    @EnvironmentObject private var settings: RemapSettings
+    @EnvironmentObject private var launchAtLogin: LaunchAtLoginController
+
+    var body: some View {
+        Form {
+            Section {
+                Picker(text.languagePicker, selection: $settings.language) {
+                    ForEach(AppLanguage.allCases) { language in
+                        Text(language.title).tag(language)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Toggle(text.launchAtLogin, isOn: launchAtLoginBinding)
+                    .toggleStyle(.switch)
+
+                if let launchAtLoginError = launchAtLogin.lastError {
+                    Text(launchAtLoginError)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } header: {
+                Text(text.generalTab)
+            } footer: {
+                Text(text.generalFooter)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .formStyle(.grouped)
+        .padding(12)
     }
 
     private var text: InterfaceText {
@@ -170,6 +233,13 @@ struct ContentView: View {
 struct InterfaceText {
     let appLanguage: AppLanguage
 
+    var keyboardTab: String { appLanguage == .chinese ? "键盘" : "Keyboard" }
+    var generalTab: String { appLanguage == .chinese ? "通用" : "General" }
+    var generalFooter: String {
+        appLanguage == .chinese
+            ? "语言影响本 app 界面文案。开机自启使用系统登录项。"
+            : "Language affects this app’s UI. Launch at login uses the system login item."
+    }
     var languagePicker: String { appLanguage == .chinese ? "语言" : "Language" }
     var subtitle: String { appLanguage == .chinese ? "短按 Shift 发送目标功能键；支持 ESC / Caps Lock 独立映射。" : "Tap Shift to send the target function key. Optional independent ESC / Caps Lock mappings." }
     var enableMapping: String { appLanguage == .chinese ? "启用键盘映射" : "Enable keyboard mapping" }
@@ -206,4 +276,5 @@ struct InterfaceText {
     ContentView()
         .environmentObject(settings)
         .environmentObject(KeyboardRemapper(settings: settings))
+        .environmentObject(LaunchAtLoginController())
 }
