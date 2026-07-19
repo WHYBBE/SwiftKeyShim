@@ -66,6 +66,13 @@ final class KeyboardRemapper: ObservableObject {
         // Caps Lock / Escape: HID-layer remap (handles MacBook built-in LED correctly).
         hidKeyMapper.applyFromSettings()
 
+        // Shift tap needs CGEventTap; skip when that feature is off.
+        guard settings.mapShiftTap else {
+            stopEventTapOnly()
+            lastError = nil
+            return
+        }
+
         guard isTrusted else {
             stopEventTapOnly()
             lastError = settings.language == .chinese
@@ -161,7 +168,9 @@ final class KeyboardRemapper: ObservableObject {
             return Unmanaged.passUnretained(event)
         }
 
-        guard settings.enabled else { return Unmanaged.passUnretained(event) }
+        guard settings.enabled, settings.mapShiftTap else {
+            return Unmanaged.passUnretained(event)
+        }
 
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
 

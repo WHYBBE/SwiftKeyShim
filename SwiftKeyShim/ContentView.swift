@@ -59,45 +59,52 @@ struct ContentView: View {
             Text(text.shiftSection)
                 .font(.headline)
 
-            Picker(text.triggerKey, selection: $settings.shiftSide) {
-                ForEach(ShiftSide.allCases) { side in
-                    Text(side.title(language: settings.language)).tag(side)
-                }
-            }
-            .pickerStyle(.segmented)
+            Toggle(text.mapShiftTap, isOn: $settings.mapShiftTap)
+                .toggleStyle(.switch)
+                .disabled(!settings.enabled)
 
-            Picker(text.targetType, selection: $settings.targetKeyMode) {
-                ForEach(TargetKeyMode.allCases) { mode in
-                    Text(mode.title(language: settings.language)).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-
-            if settings.targetKeyMode == .preset {
-                Picker(text.tapSends, selection: $settings.targetKeyCode) {
-                    ForEach(FunctionKey.supported) { key in
-                        Text(key.title).tag(key.id)
+            Group {
+                Picker(text.triggerKey, selection: $settings.shiftSide) {
+                    ForEach(ShiftSide.allCases) { side in
+                        Text(side.title(language: settings.language)).tag(side)
                     }
                 }
-            } else {
-                TextField(text.targetKeyCode, text: $settings.customTargetKeyCodeText)
-                    .textFieldStyle(.roundedBorder)
-                Text(text.commonKeyCodes)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                .pickerStyle(.segmented)
+
+                Picker(text.targetType, selection: $settings.targetKeyMode) {
+                    ForEach(TargetKeyMode.allCases) { mode in
+                        Text(mode.title(language: settings.language)).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                if settings.targetKeyMode == .preset {
+                    Picker(text.tapSends, selection: $settings.targetKeyCode) {
+                        ForEach(FunctionKey.supported) { key in
+                            Text(key.title).tag(key.id)
+                        }
+                    }
+                } else {
+                    TextField(text.targetKeyCode, text: $settings.customTargetKeyCodeText)
+                        .textFieldStyle(.roundedBorder)
+                    Text(text.commonKeyCodes)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
-            VStack(alignment: .leading) {
-                HStack {
-                    Text(text.holdThreshold)
-                    Spacer()
-                    Text("\(Int(settings.tapThresholdMilliseconds)) ms")
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading) {
+                    HStack {
+                        Text(text.holdThreshold)
+                        Spacer()
+                        Text("\(Int(settings.tapThresholdMilliseconds)) ms")
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(value: $settings.tapThresholdMilliseconds, in: 80...300, step: 10)
                 }
-                Slider(value: $settings.tapThresholdMilliseconds, in: 80...300, step: 10)
             }
+            .disabled(!settings.enabled || !settings.mapShiftTap)
 
             Divider()
 
@@ -138,9 +145,13 @@ struct ContentView: View {
     }
 
     private var statusText: String {
-        if remapper.isRunning { return text.running }
-        if !remapper.isTrusted { return text.waitingForPermission }
         if !settings.enabled { return text.disabled }
+        if remapper.isRunning { return text.running }
+        if settings.mapShiftTap, !remapper.isTrusted { return text.waitingForPermission }
+        if !settings.mapShiftTap,
+           (settings.mapEscapeToCapsLock || settings.mapCapsLockToEscape) {
+            return settings.language == .chinese ? "仅 HID 映射运行中" : "HID mappings active"
+        }
         return text.notRunning
     }
 
@@ -165,6 +176,7 @@ struct InterfaceText {
     var launchAtLogin: String { appLanguage == .chinese ? "开机自启" : "Launch at login" }
     var capsEscapeSection: String { appLanguage == .chinese ? "ESC / Caps Lock" : "ESC / Caps Lock" }
     var shiftSection: String { appLanguage == .chinese ? "Shift 短按映射" : "Shift tap mapping" }
+    var mapShiftTap: String { appLanguage == .chinese ? "Shift 短按映射" : "Shift tap mapping" }
     var mapEscapeToCapsLock: String { appLanguage == .chinese ? "ESC → Caps Lock" : "ESC → Caps Lock" }
     var mapCapsLockToEscape: String { appLanguage == .chinese ? "Caps Lock → ESC" : "Caps Lock → ESC" }
     var capsEscapeTip: String { appLanguage == .chinese ? "两条映射可单独开启，通过系统 HID 层（hidutil）生效，MacBook 内置键盘指示灯会正确跟随。关闭映射或退出 app 时会自动清除。" : "Each mapping can be enabled independently via the system HID layer (hidutil), so MacBook built-in Caps Lock LED follows correctly. Mappings are cleared when disabled or when the app quits." }

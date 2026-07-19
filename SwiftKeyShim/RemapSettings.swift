@@ -67,6 +67,11 @@ final class RemapSettings: ObservableObject {
         didSet { UserDefaults.standard.set(enabled, forKey: Keys.enabled) }
     }
 
+    /// Shift tap → target key (F18 etc.)
+    @Published var mapShiftTap: Bool {
+        didSet { UserDefaults.standard.set(mapShiftTap, forKey: Keys.mapShiftTap) }
+    }
+
     @Published var shiftSide: ShiftSide {
         didSet { UserDefaults.standard.set(shiftSide.rawValue, forKey: Keys.shiftSide) }
     }
@@ -116,6 +121,7 @@ final class RemapSettings: ObservableObject {
         let savedLanguage = UserDefaults.standard.string(forKey: Keys.language) ?? AppLanguage.chinese.rawValue
         language = AppLanguage(rawValue: savedLanguage) ?? .chinese
         enabled = UserDefaults.standard.object(forKey: Keys.enabled) as? Bool ?? true
+        mapShiftTap = UserDefaults.standard.object(forKey: Keys.mapShiftTap) as? Bool ?? true
         let savedSide = UserDefaults.standard.string(forKey: Keys.shiftSide) ?? ShiftSide.left.rawValue
         shiftSide = ShiftSide(rawValue: savedSide) ?? .left
         let savedTarget = UserDefaults.standard.object(forKey: Keys.targetKeyCode) as? Int64
@@ -134,16 +140,18 @@ final class RemapSettings: ObservableObject {
     }
 
     func handles(keyCode: Int64) -> Bool {
+        guard mapShiftTap else { return false }
         switch shiftSide {
-        case .left: keyCode == KeyCode.leftShift
-        case .right: keyCode == KeyCode.rightShift
-        case .both: keyCode == KeyCode.leftShift || keyCode == KeyCode.rightShift
+        case .left: return keyCode == KeyCode.leftShift
+        case .right: return keyCode == KeyCode.rightShift
+        case .both: return keyCode == KeyCode.leftShift || keyCode == KeyCode.rightShift
         }
     }
 
     private enum Keys {
         static let language = "language"
         static let enabled = "enabled"
+        static let mapShiftTap = "mapShiftTap"
         static let shiftSide = "shiftSide"
         static let targetKeyCode = "targetKeyCode"
         static let targetKeyMode = "targetKeyMode"

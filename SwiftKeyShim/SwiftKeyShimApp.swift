@@ -70,7 +70,9 @@ struct SwiftKeyShimApp: App {
     }
 
     private var menuBarSystemImage: String {
-        settings.enabled && (!remapper.isRunning || !remapper.isTrusted) ? "keyboard.badge.ellipsis" : "keyboard"
+        let needsShiftTap = settings.enabled && settings.mapShiftTap
+        let shiftTapBroken = needsShiftTap && (!remapper.isRunning || !remapper.isTrusted)
+        return shiftTapBroken ? "keyboard.badge.ellipsis" : "keyboard"
     }
 }
 
@@ -90,6 +92,17 @@ struct StatusMenuView: View {
             Divider()
 
             Toggle(text.enableMapping, isOn: $settings.enabled)
+
+            Toggle(text.mapEscapeToCapsLock, isOn: $settings.mapEscapeToCapsLock)
+                .disabled(!settings.enabled)
+
+            Toggle(text.mapCapsLockToEscape, isOn: $settings.mapCapsLockToEscape)
+                .disabled(!settings.enabled)
+
+            Toggle(text.mapShiftTap, isOn: $settings.mapShiftTap)
+                .disabled(!settings.enabled)
+
+            Divider()
 
             Toggle(text.launchAtLogin, isOn: launchAtLoginBinding)
 
@@ -164,9 +177,13 @@ struct StatusMenuView: View {
     }
 
     private var statusText: String {
-        if remapper.isRunning { return settings.language == .chinese ? "正在监听" : "Listening" }
-        if !remapper.isTrusted { return text.waitingForPermission }
         if !settings.enabled { return text.disabled }
+        if remapper.isRunning { return settings.language == .chinese ? "正在监听" : "Listening" }
+        if settings.mapShiftTap, !remapper.isTrusted { return text.waitingForPermission }
+        if !settings.mapShiftTap,
+           (settings.mapEscapeToCapsLock || settings.mapCapsLockToEscape) {
+            return settings.language == .chinese ? "仅 HID 映射" : "HID only"
+        }
         return text.notRunning
     }
 
