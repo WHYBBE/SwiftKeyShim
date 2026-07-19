@@ -1,6 +1,15 @@
 import SwiftUI
 import AppKit
 
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    static var sharedRemapper: KeyboardRemapper?
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // Clear HID-layer Caps/Escape mappings so they do not linger after quit.
+        AppDelegate.sharedRemapper?.stop()
+    }
+}
+
 enum SystemSettingsNavigator {
     static func openInputSourceShortcuts() {
         let urls = [
@@ -19,6 +28,7 @@ enum SystemSettingsNavigator {
 
 @main
 struct SwiftKeyShimApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var settings: RemapSettings
     @StateObject private var remapper: KeyboardRemapper
     @StateObject private var launchAtLogin: LaunchAtLoginController
@@ -29,6 +39,7 @@ struct SwiftKeyShimApp: App {
         _settings = StateObject(wrappedValue: settings)
         _remapper = StateObject(wrappedValue: remapper)
         _launchAtLogin = StateObject(wrappedValue: LaunchAtLoginController())
+        AppDelegate.sharedRemapper = remapper
 
         Task { @MainActor in
             remapper.start()
@@ -48,7 +59,7 @@ struct SwiftKeyShimApp: App {
                 .environmentObject(settings)
                 .environmentObject(remapper)
                 .environmentObject(launchAtLogin)
-                .frame(width: 640, height: 560)
+                .frame(width: 640, height: 680)
         }
 
         Window("About SwiftKeyShim", id: "about") {

@@ -36,6 +36,29 @@ struct ContentView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            Divider()
+
+            Text(text.capsEscapeSection)
+                .font(.headline)
+
+            Toggle(text.mapEscapeToCapsLock, isOn: $settings.mapEscapeToCapsLock)
+                .toggleStyle(.switch)
+                .disabled(!settings.enabled)
+
+            Toggle(text.mapCapsLockToEscape, isOn: $settings.mapCapsLockToEscape)
+                .toggleStyle(.switch)
+                .disabled(!settings.enabled)
+
+            Text(text.capsEscapeTip)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Divider()
+
+            Text(text.shiftSection)
+                .font(.headline)
+
             Picker(text.triggerKey, selection: $settings.shiftSide) {
                 ForEach(ShiftSide.allCases) { side in
                     Text(side.title(language: settings.language)).tag(side)
@@ -137,9 +160,14 @@ struct InterfaceText {
     let appLanguage: AppLanguage
 
     var languagePicker: String { appLanguage == .chinese ? "语言" : "Language" }
-    var subtitle: String { appLanguage == .chinese ? "短按 Shift 发送目标功能键；按住 Shift 保持正常修饰键行为。" : "Tap Shift to send the target function key. Hold Shift to keep normal modifier behavior." }
+    var subtitle: String { appLanguage == .chinese ? "短按 Shift 发送目标功能键；支持 ESC / Caps Lock 独立映射。" : "Tap Shift to send the target function key. Optional independent ESC / Caps Lock mappings." }
     var enableMapping: String { appLanguage == .chinese ? "启用键盘映射" : "Enable keyboard mapping" }
     var launchAtLogin: String { appLanguage == .chinese ? "开机自启" : "Launch at login" }
+    var capsEscapeSection: String { appLanguage == .chinese ? "ESC / Caps Lock" : "ESC / Caps Lock" }
+    var shiftSection: String { appLanguage == .chinese ? "Shift 短按映射" : "Shift tap mapping" }
+    var mapEscapeToCapsLock: String { appLanguage == .chinese ? "ESC → Caps Lock" : "ESC → Caps Lock" }
+    var mapCapsLockToEscape: String { appLanguage == .chinese ? "Caps Lock → ESC" : "Caps Lock → ESC" }
+    var capsEscapeTip: String { appLanguage == .chinese ? "两条映射可单独开启，通过系统 HID 层（hidutil）生效，MacBook 内置键盘指示灯会正确跟随。关闭映射或退出 app 时会自动清除。" : "Each mapping can be enabled independently via the system HID layer (hidutil), so MacBook built-in Caps Lock LED follows correctly. Mappings are cleared when disabled or when the app quits." }
     var triggerKey: String { appLanguage == .chinese ? "触发键" : "Trigger key" }
     var targetType: String { appLanguage == .chinese ? "目标类型" : "Target type" }
     var tapSends: String { appLanguage == .chinese ? "短按发送" : "Tap sends" }

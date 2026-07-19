@@ -102,6 +102,16 @@ final class RemapSettings: ObservableObject {
         didSet { UserDefaults.standard.set(tapThresholdMilliseconds, forKey: Keys.tapThresholdMilliseconds) }
     }
 
+    /// ESC → Caps Lock
+    @Published var mapEscapeToCapsLock: Bool {
+        didSet { UserDefaults.standard.set(mapEscapeToCapsLock, forKey: Keys.mapEscapeToCapsLock) }
+    }
+
+    /// Caps Lock → ESC
+    @Published var mapCapsLockToEscape: Bool {
+        didSet { UserDefaults.standard.set(mapCapsLockToEscape, forKey: Keys.mapCapsLockToEscape) }
+    }
+
     init() {
         let savedLanguage = UserDefaults.standard.string(forKey: Keys.language) ?? AppLanguage.chinese.rawValue
         language = AppLanguage(rawValue: savedLanguage) ?? .chinese
@@ -119,6 +129,8 @@ final class RemapSettings: ObservableObject {
         customTargetKeyCodeText = UserDefaults.standard.string(forKey: Keys.customTargetKeyCodeText) ?? "79"
         let savedThreshold = UserDefaults.standard.object(forKey: Keys.tapThresholdMilliseconds) as? Double
         tapThresholdMilliseconds = savedThreshold ?? 160
+        mapEscapeToCapsLock = UserDefaults.standard.object(forKey: Keys.mapEscapeToCapsLock) as? Bool ?? false
+        mapCapsLockToEscape = UserDefaults.standard.object(forKey: Keys.mapCapsLockToEscape) as? Bool ?? false
     }
 
     func handles(keyCode: Int64) -> Bool {
@@ -137,6 +149,8 @@ final class RemapSettings: ObservableObject {
         static let targetKeyMode = "targetKeyMode"
         static let customTargetKeyCodeText = "customTargetKeyCodeText"
         static let tapThresholdMilliseconds = "tapThresholdMilliseconds"
+        static let mapEscapeToCapsLock = "mapEscapeToCapsLock"
+        static let mapCapsLockToEscape = "mapCapsLockToEscape"
     }
 
     private static let defaultTargetKeyCode: Int64 = 79
@@ -154,4 +168,6 @@ final class RemapSettings: ObservableObject {
 enum KeyCode {
     static let leftShift: Int64 = 56
     static let rightShift: Int64 = 60
+    static let capsLock: Int64 = 57
+    static let escape: Int64 = 53
 }

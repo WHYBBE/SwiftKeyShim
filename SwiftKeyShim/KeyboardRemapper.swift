@@ -9,6 +9,7 @@ final class KeyboardRemapper: ObservableObject {
     @Published private(set) var lastError: String?
 
     private let settings: RemapSettings
+    private let hidKeyMapper: HIDKeyMapper
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var cancellables = Set<AnyCancellable>()
@@ -20,6 +21,7 @@ final class KeyboardRemapper: ObservableObject {
 
     init(settings: RemapSettings) {
         self.settings = settings
+        self.hidKeyMapper = HIDKeyMapper(settings: settings)
 
         settings.objectWillChange
             .sink { [weak self] _ in
@@ -61,15 +63,18 @@ final class KeyboardRemapper: ObservableObject {
             return
         }
 
+        // Caps Lock / Escape: HID-layer remap (handles MacBook built-in LED correctly).
+        hidKeyMapper.applyFromSettings()
+
         guard isTrusted else {
-            stop()
+            stopEventTapOnly()
             lastError = settings.language == .chinese
                 ? "需要在系统设置中授予辅助功能权限。"
                 : "Accessibility permission is required in System Settings."
             return
         }
 
-        stop()
+        stopEventTapOnly()
 
         let mask = (1 << CGEventType.keyDown.rawValue)
             | (1 << CGEventType.keyUp.rawValue)
@@ -117,6 +122,11 @@ final class KeyboardRemapper: ObservableObject {
     }
 
     func stop() {
+        hidKeyMapper.clearIfNeeded()
+        stopEventTapOnly()
+    }
+
+    private func stopEventTapOnly() {
         holdTimer?.invalidate()
         holdTimer = nil
         pendingShiftKeyCode = nil
@@ -136,6 +146,8 @@ final class KeyboardRemapper: ObservableObject {
     private func restartIfNeeded() {
         if isRunning || settings.enabled {
             start()
+        } else {
+            hidKeyMapper.clearIfNeeded()
         }
     }
 
@@ -152,6 +164,8 @@ final class KeyboardRemapper: ObservableObject {
         guard settings.enabled else { return Unmanaged.passUnretained(event) }
 
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+
+        // Caps Lock / Escape are handled by HIDKeyMapper (hidutil), not CGEventTap.
 
         if type == .flagsChanged, settings.handles(keyCode: keyCode) {
             let flags = event.flags
