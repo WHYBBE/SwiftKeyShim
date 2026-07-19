@@ -75,9 +75,10 @@ final class KeyboardRemapper: ObservableObject {
 
         guard isTrusted else {
             stopEventTapOnly()
+            // Only Shift tap needs Accessibility; ESC / Caps Lock already applied above via hidutil.
             lastError = settings.language == .chinese
-                ? "需要在系统设置中授予辅助功能权限。"
-                : "Accessibility permission is required in System Settings."
+                ? "Shift 短按需要辅助功能权限；ESC / Caps Lock 映射不受影响。"
+                : "Shift tap needs Accessibility; ESC / Caps Lock remaps are unaffected."
             return
         }
 

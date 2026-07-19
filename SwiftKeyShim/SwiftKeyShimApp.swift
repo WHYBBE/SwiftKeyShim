@@ -177,13 +177,13 @@ struct StatusMenuView: View {
     }
 
     private var statusText: String {
+        let hidActive = settings.mapEscapeToCapsLock || settings.mapCapsLockToEscape
         if !settings.enabled { return text.disabled }
         if remapper.isRunning { return settings.language == .chinese ? "正在监听" : "Listening" }
-        if settings.mapShiftTap, !remapper.isTrusted { return text.waitingForPermission }
-        if !settings.mapShiftTap,
-           (settings.mapEscapeToCapsLock || settings.mapCapsLockToEscape) {
-            return settings.language == .chinese ? "仅 HID 映射" : "HID only"
+        if settings.mapShiftTap, !remapper.isTrusted {
+            return hidActive ? text.hidActiveShiftNeedsPermission : text.waitingForPermission
         }
+        if hidActive { return text.hidOnlyActive }
         return text.notRunning
     }
 
