@@ -246,9 +246,18 @@ struct AboutView: View {
     }
 
     private var versionText: String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
-        return "\(text.version) \(version) (\(build))"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        switch (version.isEmpty, build.isEmpty) {
+        case (true, true):
+            return ""
+        case (false, true):
+            return "\(text.version) \(version)"
+        case (true, false):
+            return "\(text.version) (\(build))"
+        case (false, false):
+            return "\(text.version) \(version) (\(build))"
+        }
     }
 
     private var text: InterfaceText {
