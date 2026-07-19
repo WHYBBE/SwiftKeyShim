@@ -70,8 +70,9 @@ struct SwiftKeyShimApp: App {
         Window("About SwiftKeyShim", id: "about") {
             AboutView()
                 .environmentObject(settings)
-                .frame(width: 260, height: 230)
         }
+        .windowResizability(.contentSize)
+        .defaultSize(width: 280, height: 220)
     }
 
     private var menuBarSystemImage: String {
@@ -150,7 +151,7 @@ struct StatusMenuView: View {
     private func openFocusedAbout() {
         openWindow(id: "about")
 
-        for delay in [0.1, 0.3, 0.6] {
+        for delay in [0.05, 0.15, 0.35] {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 focusAboutWindow()
             }
@@ -177,6 +178,9 @@ struct StatusMenuView: View {
             return
         }
 
+        // Force compact size; macOS may restore a larger previous frame.
+        window.setContentSize(NSSize(width: 280, height: 220))
+        window.styleMask.remove(.resizable)
         window.orderFrontRegardless()
         window.makeKeyAndOrderFront(nil)
     }
@@ -209,31 +213,32 @@ struct AboutView: View {
 
     private let repositoryURL = URL(string: "https://github.com/WHYBBE/SwiftKeyShim")!
     private let licenseURL = URL(string: "https://github.com/WHYBBE/SwiftKeyShim/blob/main/LICENSE")!
+    private static let contentSize = NSSize(width: 280, height: 220)
 
     var body: some View {
         VStack(spacing: 10) {
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable()
-                .frame(width: 72, height: 72)
+                .frame(width: 64, height: 64)
 
-            VStack(spacing: 4) {
-                Text(appName)
-                    .font(.title2)
-                    .fontWeight(.semibold)
+            Text(appName)
+                .font(.title3.weight(.semibold))
 
-                Text(versionText)
-                    .foregroundStyle(.secondary)
-            }
+            Text(versionText)
+                .font(.callout)
+                .foregroundStyle(.secondary)
 
-            VStack(spacing: 6) {
-                Text(text.repository)
-                Link("WHYBBE/SwiftKeyShim", destination: repositoryURL)
-
+            HStack(spacing: 14) {
+                Link("GitHub", destination: repositoryURL)
                 Link("MIT", destination: licenseURL)
             }
+            .font(.callout)
             .padding(.top, 4)
         }
-        .padding(18)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 20)
+        .frame(width: Self.contentSize.width, height: Self.contentSize.height)
+        .background(WindowConfigurator(contentSize: Self.contentSize))
     }
 
     private var appName: String {
@@ -248,5 +253,30 @@ struct AboutView: View {
 
     private var text: InterfaceText {
         InterfaceText(appLanguage: settings.language)
+    }
+}
+
+/// Applies a fixed compact size to the hosting NSWindow (overrides restored frames).
+private struct WindowConfigurator: NSViewRepresentable {
+    let contentSize: NSSize
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            configure(view)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            configure(nsView)
+        }
+    }
+
+    private func configure(_ view: NSView) {
+        guard let window = view.window else { return }
+        window.setContentSize(contentSize)
+        window.styleMask.remove(.resizable)
     }
 }
