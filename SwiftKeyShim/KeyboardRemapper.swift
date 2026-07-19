@@ -16,6 +16,7 @@ final class KeyboardRemapper: ObservableObject {
     private var pendingShiftKeyCode: Int64?
     private var heldShiftKeyCode: Int64?
     private var holdTimer: Timer?
+    private var accessibilityPollTimer: Timer?
 
     private static let syntheticEventMarker: Int64 = 0x53575348494D
 
@@ -35,6 +36,7 @@ final class KeyboardRemapper: ObservableObject {
 
     deinit {
         holdTimer?.invalidate()
+        accessibilityPollTimer?.invalidate()
 
         if let eventTap {
             CGEvent.tapEnable(tap: eventTap, enable: false)
@@ -47,13 +49,56 @@ final class KeyboardRemapper: ObservableObject {
     func requestAccessibilityPermission() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
         isTrusted = AXIsProcessTrustedWithOptions(options)
+        if isTrusted {
+            stopAccessibilityPolling()
+            if settings.enabled {
+                start()
+            }
+        } else {
+            beginAccessibilityPolling()
+        }
     }
 
+    /// Re-check Accessibility and auto-start Shift tap when permission appears.
     func refreshAuthorizationStatus() {
+        let wasTrusted = isTrusted
         isTrusted = AXIsProcessTrusted()
-        if isTrusted, settings.enabled, !isRunning {
-            start()
+
+        if isTrusted {
+            stopAccessibilityPolling()
+            if settings.enabled, settings.mapShiftTap, (!isRunning || !wasTrusted) {
+                start()
+            }
+        } else if needsAccessibilityPolling {
+            beginAccessibilityPolling()
+        } else {
+            stopAccessibilityPolling()
         }
+    }
+
+    private var needsAccessibilityPolling: Bool {
+        settings.enabled && settings.mapShiftTap && !AXIsProcessTrusted()
+    }
+
+    private func beginAccessibilityPolling() {
+        guard needsAccessibilityPolling else {
+            stopAccessibilityPolling()
+            return
+        }
+        guard accessibilityPollTimer == nil else { return }
+
+        let timer = Timer(timeInterval: 0.8, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.refreshAuthorizationStatus()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        accessibilityPollTimer = timer
+    }
+
+    private func stopAccessibilityPolling() {
+        accessibilityPollTimer?.invalidate()
+        accessibilityPollTimer = nil
     }
 
     func start() {
@@ -79,8 +124,11 @@ final class KeyboardRemapper: ObservableObject {
             lastError = settings.language == .chinese
                 ? "Shift 短按需要辅助功能权限；ESC / Caps Lock 映射不受影响。"
                 : "Shift tap needs Accessibility; ESC / Caps Lock remaps are unaffected."
+            beginAccessibilityPolling()
             return
         }
+
+        stopAccessibilityPolling()
 
         stopEventTapOnly()
 
@@ -154,8 +202,14 @@ final class KeyboardRemapper: ObservableObject {
     private func restartIfNeeded() {
         if isRunning || settings.enabled {
             start()
+            if needsAccessibilityPolling {
+                beginAccessibilityPolling()
+            } else if isTrusted || !settings.mapShiftTap || !settings.enabled {
+                stopAccessibilityPolling()
+            }
         } else {
             hidKeyMapper.clearIfNeeded()
+            stopAccessibilityPolling()
         }
     }
 

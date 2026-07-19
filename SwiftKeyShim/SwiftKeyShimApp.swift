@@ -4,6 +4,11 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     static var sharedRemapper: KeyboardRemapper?
 
+    func applicationDidBecomeActive(_ notification: Notification) {
+        // User may have just granted Accessibility in System Settings.
+        AppDelegate.sharedRemapper?.refreshAuthorizationStatus()
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         // Clear HID-layer Caps/Escape mappings so they do not linger after quit.
         AppDelegate.sharedRemapper?.stop()

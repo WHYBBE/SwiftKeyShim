@@ -25,7 +25,10 @@ struct ContentView: View {
                 }
                 .tag(SettingsTab.general)
         }
-        .onAppear { remapper.start() }
+        .onAppear {
+            remapper.start()
+            remapper.refreshAuthorizationStatus()
+        }
     }
 
     private var text: InterfaceText {
@@ -166,6 +169,9 @@ private struct KeyboardSettingsView: View {
             }
             .padding(28)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .onAppear {
+            remapper.refreshAuthorizationStatus()
         }
     }
 
