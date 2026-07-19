@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-> 由 GPT-5.5 / OpenCode Vibe Coding 而成。
+> OpenCode Vibe Coding · `8aafdb1` 及之前 GPT-5.5 · 之后 Grok 4.5
 
 SwiftKeyShim 是一个个人使用的 macOS 菜单栏键盘映射小程序，使用 Swift 和 SwiftUI 构建。它主要服务于我自己的键盘使用习惯，因此只专注于少量明确需求，而不是试图成为通用键盘映射工具。
 

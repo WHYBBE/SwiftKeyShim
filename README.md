@@ -2,7 +2,7 @@
 
 [中文说明](README.zh-CN.md)
 
-> Built through vibe coding with GPT-5.5 and OpenCode.
+> OpenCode vibe coding · ≤ `8aafdb1` GPT-5.5 · after that Grok 4.5
 
 SwiftKeyShim is a small personal macOS menu bar app for a few specific keyboard remaps. It is built with Swift and SwiftUI for my own workflow, so it intentionally stays narrow instead of becoming a general-purpose remapper.
 
