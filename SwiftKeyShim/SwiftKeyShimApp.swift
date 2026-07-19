@@ -87,10 +87,6 @@ struct StatusMenuView: View {
                 openFocusedSettings()
             }
 
-            Button(text.openInputSourceShortcuts) {
-                SystemSettingsNavigator.openInputSourceShortcuts()
-            }
-
             Divider()
 
             Toggle(text.enableMapping, isOn: $settings.enabled)
