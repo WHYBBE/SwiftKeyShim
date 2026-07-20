@@ -128,6 +128,10 @@ struct StatusMenuView: View {
 
             Divider()
 
+            Button(text.restart) {
+                restartApp()
+            }
+
             Button(text.quit) {
                 NSApp.terminate(nil)
             }
@@ -183,6 +187,15 @@ struct StatusMenuView: View {
         window.styleMask.remove(.resizable)
         window.orderFrontRegardless()
         window.makeKeyAndOrderFront(nil)
+    }
+
+    private func restartApp() {
+        let bundlePath = Bundle.main.bundlePath
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        task.arguments = ["-c", "sleep 0.5; open \"\(bundlePath)\""]
+        try? task.run()
+        NSApp.terminate(nil)
     }
 
     private var statusText: String {

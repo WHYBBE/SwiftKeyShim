@@ -331,6 +331,7 @@ struct InterfaceText {
     var version: String { appLanguage == .chinese ? "版本" : "Version" }
     var repository: String { appLanguage == .chinese ? "开源仓库" : "Open Source Repository" }
     var license: String { appLanguage == .chinese ? "开源协议" : "Open Source License" }
+    var restart: String { appLanguage == .chinese ? "重启 SwiftKeyShim" : "Restart SwiftKeyShim" }
     var quit: String { appLanguage == .chinese ? "退出 SwiftKeyShim" : "Quit SwiftKeyShim" }
 }
 
