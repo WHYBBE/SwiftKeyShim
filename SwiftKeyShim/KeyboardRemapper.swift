@@ -17,8 +17,13 @@ final class KeyboardRemapper: ObservableObject {
     private var heldShiftKeyCode: Int64?
     private var holdTimer: Timer?
     private var accessibilityPollTimer: Timer?
+    /// Prevents synthetic posts from re-entering the state machine on the same call stack.
+    private var isEmittingSynthetic = false
 
     private static let syntheticEventMarker: Int64 = 0x53575348494D
+    /// Device-dependent modifier bits (IOKit NX_DEVICE*SHIFTKEYMASK) for left/right Shift.
+    private static let leftShiftDeviceFlag: UInt64 = 0x00000002
+    private static let rightShiftDeviceFlag: UInt64 = 0x00000004
 
     init(settings: RemapSettings) {
         self.settings = settings
@@ -183,10 +188,8 @@ final class KeyboardRemapper: ObservableObject {
     }
 
     private func stopEventTapOnly() {
-        holdTimer?.invalidate()
-        holdTimer = nil
-        pendingShiftKeyCode = nil
-        heldShiftKeyCode = nil
+        // Release any synthetic held Shift so the OS modifier state cannot stick across restarts.
+        resetShiftState(postKeyUpIfNeeded: true)
 
         if let eventTap {
             CGEvent.tapEnable(tap: eventTap, enable: false)
@@ -216,10 +219,12 @@ final class KeyboardRemapper: ObservableObject {
     private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
+            // Dropped events while disabled can leave pending/held stuck; recover cleanly.
+            resetShiftState(postKeyUpIfNeeded: true)
             return Unmanaged.passUnretained(event)
         }
 
-        guard event.getIntegerValueField(.eventSourceUserData) != Self.syntheticEventMarker else {
+        if event.getIntegerValueField(.eventSourceUserData) == Self.syntheticEventMarker || isEmittingSynthetic {
             return Unmanaged.passUnretained(event)
         }
 
@@ -230,27 +235,38 @@ final class KeyboardRemapper: ObservableObject {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
 
         // Caps Lock / Escape are handled by HIDKeyMapper (hidutil), not CGEventTap.
+        // Use per-key device flags (not aggregate .maskShift) so left/right Shift
+        // and synthetic posts cannot desync press vs release detection.
 
         if type == .flagsChanged, settings.handles(keyCode: keyCode) {
-            let flags = event.flags
-            let isShiftDown = flags.contains(.maskShift)
+            let isDown = isPhysicalShiftDown(keyCode: keyCode, flags: event.flags)
 
-            if isShiftDown && pendingShiftKeyCode == nil && heldShiftKeyCode == nil {
+            if isDown {
+                // Duplicate down (or already tracking) — swallow, do not re-arm.
+                if pendingShiftKeyCode == keyCode || heldShiftKeyCode == keyCode {
+                    return nil
+                }
+                if pendingShiftKeyCode != nil || heldShiftKeyCode != nil {
+                    resetShiftState(postKeyUpIfNeeded: true)
+                }
                 beginPendingShift(keyCode: keyCode)
                 return nil
             }
 
             if pendingShiftKeyCode == keyCode {
-                fireTap(keyCode: settings.targetKeyCode)
                 clearPendingShift()
+                fireTap(keyCode: settings.targetKeyCode)
                 return nil
             }
 
             if heldShiftKeyCode == keyCode {
-                postShift(keyCode: keyCode, down: false)
                 heldShiftKeyCode = nil
+                postShift(keyCode: keyCode, down: false)
                 return nil
             }
+
+            // Spurious up after recovery — swallow so a bare Shift up cannot leak.
+            return nil
         }
 
         if pendingShiftKeyCode != nil, type == .keyDown || type == .flagsChanged {
@@ -260,18 +276,49 @@ final class KeyboardRemapper: ObservableObject {
         return Unmanaged.passUnretained(event)
     }
 
+    private func isPhysicalShiftDown(keyCode: Int64, flags: CGEventFlags) -> Bool {
+        let raw = flags.rawValue
+        let leftDown = raw & Self.leftShiftDeviceFlag != 0
+        let rightDown = raw & Self.rightShiftDeviceFlag != 0
+
+        switch keyCode {
+        case KeyCode.leftShift:
+            if leftDown { return true }
+            if rightDown { return false }
+        case KeyCode.rightShift:
+            if rightDown { return true }
+            if leftDown { return false }
+        default:
+            return flags.contains(.maskShift)
+        }
+
+        // No per-key device bits: release clears aggregate maskShift; any set mask is still down.
+        return flags.contains(.maskShift)
+    }
+
     private func beginPendingShift(keyCode: Int64) {
         pendingShiftKeyCode = keyCode
         holdTimer?.invalidate()
-        holdTimer = Timer.scheduledTimer(withTimeInterval: settings.tapThresholdMilliseconds / 1000, repeats: false) { [weak self] _ in
+        let timer = Timer(timeInterval: settings.tapThresholdMilliseconds / 1000, repeats: false) { [weak self] _ in
             Task { @MainActor in self?.promotePendingShiftToHeld() }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        holdTimer = timer
     }
 
     private func clearPendingShift() {
         holdTimer?.invalidate()
         holdTimer = nil
         pendingShiftKeyCode = nil
+    }
+
+    private func resetShiftState(postKeyUpIfNeeded: Bool) {
+        let held = heldShiftKeyCode
+        clearPendingShift()
+        heldShiftKeyCode = nil
+        if postKeyUpIfNeeded, let held {
+            postShift(keyCode: held, down: false)
+        }
     }
 
     private func promotePendingShiftToHeld() {
@@ -287,19 +334,24 @@ final class KeyboardRemapper: ObservableObject {
     }
 
     private func postShift(keyCode: Int64, down: Bool) {
-        let event = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(keyCode), keyDown: down)
+        let source = CGEventSource(stateID: .combinedSessionState)
+        let event = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: down)
         event?.flags = down ? .maskShift : []
         post(event)
     }
 
     private func postKey(keyCode: Int64, down: Bool) {
-        let event = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(keyCode), keyDown: down)
+        let source = CGEventSource(stateID: .combinedSessionState)
+        let event = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: down)
         post(event)
     }
 
     private func post(_ event: CGEvent?) {
         guard let event else { return }
         event.setIntegerValueField(.eventSourceUserData, value: Self.syntheticEventMarker)
-        event.post(tap: .cghidEventTap)
+        isEmittingSynthetic = true
+        defer { isEmittingSynthetic = false }
+        // Session-level post keeps userData and avoids HID re-injection races with our FSM.
+        event.post(tap: .cgAnnotatedSessionEventTap)
     }
 }
