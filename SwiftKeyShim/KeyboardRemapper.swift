@@ -1,4 +1,4 @@
-import ApplicationServices
+@preconcurrency import ApplicationServices
 import Combine
 import SwiftUI
 
@@ -41,20 +41,10 @@ final class KeyboardRemapper: ObservableObject {
             .store(in: &cancellables)
     }
 
-    deinit {
-        holdTimer?.invalidate()
-        accessibilityPollTimer?.invalidate()
-
-        if let eventTap {
-            CGEvent.tapEnable(tap: eventTap, enable: false)
-        }
-        if let runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
-        }
-    }
+    // Cleanup runs via stop() / applicationWillTerminate; deinit cannot touch MainActor state in Swift 6.
 
     func requestAccessibilityPermission() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         isTrusted = AXIsProcessTrustedWithOptions(options)
         if isTrusted {
             stopAccessibilityPolling()
