@@ -148,6 +148,18 @@ final class RemapSettings: ObservableObject {
         }
     }
 
+    /// Values that require remapper/HID reconfiguration when they change.
+    /// Language, threshold, and target key code are read live and excluded.
+    var remapperConfiguration: RemapperConfiguration {
+        RemapperConfiguration(
+            enabled: enabled,
+            mapShiftTap: mapShiftTap,
+            shiftSide: shiftSide,
+            mapEscapeToCapsLock: mapEscapeToCapsLock,
+            mapCapsLockToEscape: mapCapsLockToEscape
+        )
+    }
+
     private enum Keys {
         static let language = "language"
         static let enabled = "enabled"
@@ -178,4 +190,12 @@ enum KeyCode {
     static let rightShift: Int64 = 60
     static let capsLock: Int64 = 57
     static let escape: Int64 = 53
+}
+
+struct RemapperConfiguration: Equatable {
+    var enabled: Bool
+    var mapShiftTap: Bool
+    var shiftSide: ShiftSide
+    var mapEscapeToCapsLock: Bool
+    var mapCapsLockToEscape: Bool
 }

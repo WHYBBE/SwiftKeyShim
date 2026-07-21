@@ -19,6 +19,8 @@ final class KeyboardRemapper: ObservableObject {
     private var accessibilityPollTimer: Timer?
     /// Prevents synthetic posts from re-entering the state machine on the same call stack.
     private var isEmittingSynthetic = false
+    /// Last applied mapping config; language / threshold / target key do not touch this.
+    private var appliedConfiguration: RemapperConfiguration?
 
     private static let syntheticEventMarker: Int64 = 0x53575348494D
     /// Device-dependent modifier bits (IOKit NX_DEVICE*SHIFTKEYMASK) for left/right Shift.
@@ -33,7 +35,7 @@ final class KeyboardRemapper: ObservableObject {
             .sink { [weak self] _ in
                 Task { @MainActor in
                     await Task.yield()
-                    self?.restartIfNeeded()
+                    self?.applyConfigurationIfNeeded()
                 }
             }
             .store(in: &cancellables)
@@ -120,6 +122,7 @@ final class KeyboardRemapper: ObservableObject {
         guard settings.mapShiftTap else {
             stopEventTapOnly()
             lastError = nil
+            appliedConfiguration = settings.remapperConfiguration
             return
         }
 
@@ -130,6 +133,7 @@ final class KeyboardRemapper: ObservableObject {
                 ? "Shift 短按需要辅助功能权限；ESC / Caps Lock 映射不受影响。"
                 : "Shift tap needs Accessibility; ESC / Caps Lock remaps are unaffected."
             beginAccessibilityPolling()
+            appliedConfiguration = settings.remapperConfiguration
             return
         }
 
@@ -141,14 +145,10 @@ final class KeyboardRemapper: ObservableObject {
             | (1 << CGEventType.keyUp.rawValue)
             | (1 << CGEventType.flagsChanged.rawValue)
 
+        // Source is on the main run loop, so callbacks are delivered on the main thread.
         let callback: CGEventTapCallBack = { _, type, event, refcon in
             guard let refcon else { return Unmanaged.passUnretained(event) }
             let remapper = Unmanaged<KeyboardRemapper>.fromOpaque(refcon).takeUnretainedValue()
-
-            guard Thread.isMainThread else {
-                return Unmanaged.passUnretained(event)
-            }
-
             return MainActor.assumeIsolated {
                 remapper.handle(type: type, event: event)
             }
@@ -169,6 +169,7 @@ final class KeyboardRemapper: ObservableObject {
                 ? "无法创建键盘事件监听。请检查辅助功能和输入监控权限。"
                 : "Could not create the keyboard event tap. Check Accessibility and Input Monitoring permissions."
             isRunning = false
+            appliedConfiguration = settings.remapperConfiguration
             return
         }
 
@@ -180,11 +181,13 @@ final class KeyboardRemapper: ObservableObject {
         CGEvent.tapEnable(tap: eventTap, enable: true)
         isRunning = true
         lastError = nil
+        appliedConfiguration = settings.remapperConfiguration
     }
 
     func stop() {
         hidKeyMapper.clearIfNeeded()
         stopEventTapOnly()
+        appliedConfiguration = settings.remapperConfiguration
     }
 
     private func stopEventTapOnly() {
@@ -202,6 +205,12 @@ final class KeyboardRemapper: ObservableObject {
         isRunning = false
     }
 
+    private func applyConfigurationIfNeeded() {
+        let configuration = settings.remapperConfiguration
+        guard configuration != appliedConfiguration else { return }
+        restartIfNeeded()
+    }
+
     private func restartIfNeeded() {
         if isRunning || settings.enabled {
             start()
@@ -213,6 +222,7 @@ final class KeyboardRemapper: ObservableObject {
         } else {
             hidKeyMapper.clearIfNeeded()
             stopAccessibilityPolling()
+            appliedConfiguration = settings.remapperConfiguration
         }
     }
 
