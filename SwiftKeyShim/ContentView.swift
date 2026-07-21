@@ -26,7 +26,6 @@ struct ContentView: View {
                 .tag(SettingsTab.general)
         }
         .onAppear {
-            remapper.start()
             remapper.refreshAuthorizationStatus()
         }
     }

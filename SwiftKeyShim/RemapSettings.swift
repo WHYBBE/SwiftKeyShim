@@ -104,7 +104,14 @@ final class RemapSettings: ObservableObject {
     }
 
     @Published var tapThresholdMilliseconds: Double {
-        didSet { UserDefaults.standard.set(tapThresholdMilliseconds, forKey: Keys.tapThresholdMilliseconds) }
+        didSet {
+            let clamped = Self.clampedThreshold(tapThresholdMilliseconds)
+            if tapThresholdMilliseconds != clamped {
+                tapThresholdMilliseconds = clamped
+                return
+            }
+            UserDefaults.standard.set(clamped, forKey: Keys.tapThresholdMilliseconds)
+        }
     }
 
     /// ESC → Caps Lock
@@ -118,25 +125,36 @@ final class RemapSettings: ObservableObject {
     }
 
     init() {
-        let savedLanguage = UserDefaults.standard.string(forKey: Keys.language) ?? AppLanguage.chinese.rawValue
+        let defaults = UserDefaults.standard
+        let savedLanguage = defaults.string(forKey: Keys.language) ?? AppLanguage.chinese.rawValue
         language = AppLanguage(rawValue: savedLanguage) ?? .chinese
-        enabled = UserDefaults.standard.object(forKey: Keys.enabled) as? Bool ?? true
-        mapShiftTap = UserDefaults.standard.object(forKey: Keys.mapShiftTap) as? Bool ?? true
-        let savedSide = UserDefaults.standard.string(forKey: Keys.shiftSide) ?? ShiftSide.left.rawValue
+        enabled = defaults.object(forKey: Keys.enabled) as? Bool ?? true
+        mapShiftTap = defaults.object(forKey: Keys.mapShiftTap) as? Bool ?? true
+        let savedSide = defaults.string(forKey: Keys.shiftSide) ?? ShiftSide.left.rawValue
         shiftSide = ShiftSide(rawValue: savedSide) ?? .left
-        let savedTarget = UserDefaults.standard.object(forKey: Keys.targetKeyCode) as? Int64
+
+        let hasSavedTarget = defaults.object(forKey: Keys.targetKeyCode) != nil
+        let savedTarget = hasSavedTarget ? Int64(defaults.integer(forKey: Keys.targetKeyCode)) : nil
         let validatedTarget = Self.validKeyCode(savedTarget)
         targetKeyCode = validatedTarget
-        if savedTarget != nil, savedTarget != validatedTarget {
-            UserDefaults.standard.set(validatedTarget, forKey: Keys.targetKeyCode)
+        if hasSavedTarget, savedTarget != validatedTarget {
+            defaults.set(validatedTarget, forKey: Keys.targetKeyCode)
         }
-        let savedMode = UserDefaults.standard.string(forKey: Keys.targetKeyMode) ?? TargetKeyMode.preset.rawValue
+
+        let savedMode = defaults.string(forKey: Keys.targetKeyMode) ?? TargetKeyMode.preset.rawValue
         targetKeyMode = TargetKeyMode(rawValue: savedMode) ?? .preset
-        customTargetKeyCodeText = UserDefaults.standard.string(forKey: Keys.customTargetKeyCodeText) ?? "79"
-        let savedThreshold = UserDefaults.standard.object(forKey: Keys.tapThresholdMilliseconds) as? Double
-        tapThresholdMilliseconds = savedThreshold ?? 160
-        mapEscapeToCapsLock = UserDefaults.standard.object(forKey: Keys.mapEscapeToCapsLock) as? Bool ?? false
-        mapCapsLockToEscape = UserDefaults.standard.object(forKey: Keys.mapCapsLockToEscape) as? Bool ?? false
+        customTargetKeyCodeText = defaults.string(forKey: Keys.customTargetKeyCodeText) ?? "79"
+
+        let hasSavedThreshold = defaults.object(forKey: Keys.tapThresholdMilliseconds) != nil
+        let savedThreshold = hasSavedThreshold ? defaults.double(forKey: Keys.tapThresholdMilliseconds) : nil
+        let validatedThreshold = Self.clampedThreshold(savedThreshold ?? Self.defaultTapThresholdMilliseconds)
+        tapThresholdMilliseconds = validatedThreshold
+        if hasSavedThreshold, savedThreshold != validatedThreshold {
+            defaults.set(validatedThreshold, forKey: Keys.tapThresholdMilliseconds)
+        }
+
+        mapEscapeToCapsLock = defaults.object(forKey: Keys.mapEscapeToCapsLock) as? Bool ?? false
+        mapCapsLockToEscape = defaults.object(forKey: Keys.mapCapsLockToEscape) as? Bool ?? false
     }
 
     func handles(keyCode: Int64) -> Bool {
@@ -174,7 +192,9 @@ final class RemapSettings: ObservableObject {
     }
 
     private static let defaultTargetKeyCode: Int64 = 79
+    private static let defaultTapThresholdMilliseconds: Double = 160
     private static let validKeyCodeRange: ClosedRange<Int64> = 0...127
+    private static let validThresholdRange: ClosedRange<Double> = 80...300
 
     private static func validKeyCode(_ keyCode: Int64?) -> Int64 {
         guard let keyCode, validKeyCodeRange.contains(keyCode) else {
@@ -182,6 +202,10 @@ final class RemapSettings: ObservableObject {
         }
 
         return keyCode
+    }
+
+    private static func clampedThreshold(_ value: Double) -> Double {
+        min(max(value, validThresholdRange.lowerBound), validThresholdRange.upperBound)
     }
 }
 
