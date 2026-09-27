@@ -334,15 +334,24 @@ final class KeyboardRemapper: ObservableObject {
     }
 
     private func postShift(keyCode: Int64, down: Bool) {
-        let source = CGEventSource(stateID: .combinedSessionState)
-        let event = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: down)
-        event?.flags = down ? .maskShift : []
+        // nil source starts with clean flags; otherwise the event can inherit the
+        // physical modifier state (e.g. a still-registered Shift) and break system shortcuts.
+        let event = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(keyCode), keyDown: down)
+        if down {
+            var raw = CGEventFlags.maskShift.rawValue
+            if keyCode == KeyCode.leftShift { raw |= Self.leftShiftDeviceFlag }
+            if keyCode == KeyCode.rightShift { raw |= Self.rightShiftDeviceFlag }
+            event?.flags = CGEventFlags(rawValue: raw)
+        } else {
+            event?.flags = []
+        }
         post(event)
     }
 
     private func postKey(keyCode: Int64, down: Bool) {
-        let source = CGEventSource(stateID: .combinedSessionState)
-        let event = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(keyCode), keyDown: down)
+        let event = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(keyCode), keyDown: down)
+        // Target key (F18 etc.) must carry no modifiers so plain shortcuts match.
+        event?.flags = []
         post(event)
     }
 
