@@ -92,12 +92,6 @@ struct StatusMenuView: View {
 
     var body: some View {
         Group {
-            Button(text.settings) {
-                openFocusedSettings()
-            }
-
-            Divider()
-
             Toggle(text.enableMapping, isOn: $settings.enabled)
 
             Toggle(text.mapEscapeToCapsLock, isOn: $settings.mapEscapeToCapsLock)
@@ -123,7 +117,11 @@ struct StatusMenuView: View {
 
             Divider()
 
-            Button(text.about) {
+            Button(text.settings) {
+                openFocusedSettings()
+            }
+
+            Button(aboutText) {
                 openFocusedAbout()
             }
 
@@ -212,6 +210,14 @@ struct StatusMenuView: View {
 
     private var text: InterfaceText {
         InterfaceText(appLanguage: settings.language)
+    }
+
+    private var aboutText: String {
+        guard let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+              !version.isEmpty else {
+            return text.about
+        }
+        return "\(text.about) \(version)"
     }
 
     private var launchAtLoginBinding: Binding<Bool> {
