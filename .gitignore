@@ -3,6 +3,8 @@ DerivedData/
 build/
 .build/
 
+*.dmg
+
 *.xcuserstate
 xcuserdata/
 
